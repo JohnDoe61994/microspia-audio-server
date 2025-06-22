@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Ascolta Microspia</title></head>
+<body>
+ <h2>Microspia Audio Streaming</h2>
+ <button id="start">Ascolta</button>
+ <script>
+   document.getElementById('start').onclick = () => {
+     const ws = new WebSocket(`wss://${location.host}`);
+     const ac = new AudioContext();
+     let queue = [];
+     const scriptNode = ac.createScriptProcessor(1024, 1, 1);
+     ws.binaryType = 'arraybuffer';
+     ws.onmessage = evt => queue.push(new Uint8Array(evt.data));
+     scriptNode.onaudioprocess = e => {
+       if (queue.length) {
+         const buf = queue.shift();
+         const data = e.outputBuffer.getChannelData(0);
+         for (let i = 0; i < data.length; i++)
+           data[i] = (buf[i] - 128) / 128;
+       }
+     };
+     scriptNode.connect(ac.destination);
+   };
+ </script>
+</body>
+</html>
